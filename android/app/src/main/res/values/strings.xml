@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AXION</string>
+    <string name="app_url">https://axionenterprise.cloud</string>
+    <string name="app_description">Enterprise platform for automated sales and content management</string>
+</resources>

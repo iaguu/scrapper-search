@@ -1,0 +1,30 @@
+{
+  "name": "telegram-query-bridge",
+  "version": "1.0.0",
+  "description": "Bridge API Node to Telegram",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "start-all.bat",
+    "setup": "setup-env.bat",
+    "python": "cd telegram_service && python -m uvicorn demo:app --host 127.0.0.1 --port 8000",
+    "api": "node api/index.js",
+    "manager": "python server.py",
+    "dev": "start-all.bat",
+    "prod": "start-all.bat",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "deploy": "./deploy.sh",
+    "stop": "stop_services.bat",
+    "restart": "npm run stop && npm start",
+    "test": "echo 'Tests not implemented yet'",
+    "lint": "echo 'Linting not configured yet'"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  }
+}
