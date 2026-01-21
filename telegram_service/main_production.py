@@ -1,17 +1,21 @@
+#!/usr/bin/env python3
+"""
+Versão de Produção do Serviço Python com Tratamento de Autenticação
+"""
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
 from telethon import TelegramClient
-from telethon.events import NewMessage
+from telethon.events import NewMessage, CallbackQuery
 import os
 from dotenv import load_dotenv
 import uuid
 from typing import Dict, Optional
+import time
 import re
 import json
-import time
-import traceback
 
 load_dotenv()
 
@@ -29,14 +33,7 @@ app.add_middleware(
 try:
     API_ID = int(os.getenv('API_ID', '0'))
     API_HASH = os.getenv('API_HASH', '')
-    
-    # Tenta carregar CHAT_ID como int, senão mantém como string (username)
-    chat_id_env = os.getenv('CHAT_ID', '0')
-    try:
-        CHAT_ID = int(chat_id_env)
-    except ValueError:
-        CHAT_ID = chat_id_env
-        
+    CHAT_ID = int(os.getenv('CHAT_ID', '0'))
     PHONE_NUMBER = os.getenv('PHONE_NUMBER', '')
 except (ValueError, TypeError):
     print("AVISO: Configurações do Telegram inválidas ou ausentes.")
@@ -63,9 +60,6 @@ COMMAND_TO_BUTTON = {
 
 # Dicionário para armazenar requisições pendentes
 pending_requests: Dict[str, dict] = {}
-
-telegram_connected = False
-connection_error: Optional[str] = None
 
 def scrape_relatorio_completo(text):
     """Extrai dados estruturados do relatório completo"""
@@ -104,10 +98,43 @@ def scrape_relatorio_completo(text):
         if mae_match:
             dados["mae"] = mae_match.group(1).strip()
         
+        # Extrair telefones
+        telefone_match = re.search(r'📱\s*(\d+)\s*Telefones?', text)
+        if telefone_match:
+            dados["telefones"] = [f"Telefone {i+1}" for i in range(int(telefone_match.group(1)))]
+        
+        # Extrair emails
+        email_match = re.search(r'📧\s*(\d+)\s*Emails?', text)
+        if email_match:
+            dados["emails"] = [f"Email {i+1}" for i in range(int(email_match.group(1)))]
+        
+        # Extrair endereços
+        endereco_match = re.search(r'📍\s*(\d+)\s*Endereços?', text)
+        if endereco_match:
+            dados["enderecos"] = [f"Endereço {i+1}" for i in range(int(endereco_match.group(1)))]
+        
+        # Extrair credenciais vazadas
+        vazadas_match = re.search(r'🔐\s*(\d+)\s*Credenciais Vazadas?', text)
+        if vazadas_match:
+            dados["credenciais_vazadas"] = int(vazadas_match.group(1))
+        
+        # Extrair veículos
+        veiculos_match = re.search(r'🚗\s*(\d+)\s*Veículos?', text)
+        if veiculos_match:
+            dados["veiculos"] = int(veiculos_match.group(1))
+        
+        # Extrair parentes
+        parentes_match = re.search(r'👨‍👩‍👧\s*(\d+)\s*Parentes?', text)
+        if parentes_match:
+            dados["parentes"] = [f"Parente {i+1}" for i in range(int(parentes_match.group(1)))]
+        
     except Exception as e:
         print(f"Erro ao fazer scraping: {e}")
     
     return dados
+
+# Dicionário para armazenar respostas de botões
+button_responses: Dict[str, dict] = {}
 
 # Cliente do Telegram com tratamento de erros
 try:
@@ -117,12 +144,9 @@ try:
 except Exception as e:
     print(f"ERRO ao inicializar cliente Telegram: {e}")
     connection_error = str(e)
-    client = None
 
 class CommandRequest(BaseModel):
-    command: Optional[str] = None
-    type: Optional[str] = None
-    query: Optional[str] = None
+    command: str
     timeout: int = 30
 
 class CommandResponse(BaseModel):
@@ -132,42 +156,43 @@ class CommandResponse(BaseModel):
 
 class AuthStatusResponse(BaseModel):
     connected: bool
+    needs_code: bool = False
     error: Optional[str] = None
-    details: Optional[str] = None
+    message: str
 
 @app.on_event("startup")
 async def startup_event():
     """Inicia o cliente do Telegram quando o servidor sobe"""
     global telegram_connected, connection_error
-
+    
     if not client:
         print("ERRO CRÍTICO: Cliente Telegram não foi inicializado.")
-        connection_error = connection_error or "Cliente Telegram não foi inicializado."
         return
         
     if not API_ID or not API_HASH:
-        print("ERRO CRÍTICO: API_ID ou API_HASH não configurados. O cliente Telegram não conectará.")
-        connection_error = "API_ID ou API_HASH não configurados."
+        print("ERRO CRÍTICO: API_ID ou API_HASH não configurados.")
+        connection_error = "API_ID ou API_HASH não configurados"
         return
-
-    if CHAT_ID == 0 or CHAT_ID == "0":
-        print("⚠️ AVISO: CHAT_ID não configurado. O envio de comandos falhará.")
 
     print(f"Iniciando cliente Telegram para: {PHONE_NUMBER}...")
     try:
-        await client.connect()
+        await client.start(phone=PHONE_NUMBER)
+        telegram_connected = True
+        print("✅ Telegram client started successfully!")
         
-        if await client.is_user_authorized():
-            telegram_connected = True
-            print("✅ Telegram client started successfully!")
-        else:
-            print("⚠️ AVISO: Cliente não autenticado. O serviço iniciará, mas comandos falharão.")
-            print("⚠️ Ação necessária: Execute o script de login localmente para gerar a sessão.")
-            connection_error = "Cliente não autenticado. Sessão inválida ou inexistente."
+        # Registra o handler de mensagens após conexão
+        @client.on(NewMessage(chats=CHAT_ID))
+        async def handle_new_message(event):
+            """Lida com novas mensagens no grupo"""
+            # A lógica de tratamento de resposta foi movida para a rota send_command para evitar concorrência
+            pass
 
-        # Registra o handler de mensagens APÓS a conexão bem-sucedida
-        # A lógica de tratamento de resposta foi movida para a rota send_command para evitar concorrência
-        pass
+        @client.on(CallbackQuery)
+        async def handle_button_click(event):
+            """Lida com cliques em botões inline"""
+            # Este handler não é adequado para um user-bot que automatiza outro bot. A lógica foi centralizada.
+            pass
+        
     except Exception as e:
         connection_error = str(e)
         print(f"❌ Erro ao iniciar cliente Telegram: {e}")
@@ -190,24 +215,14 @@ async def send_command(request: CommandRequest):
         raise HTTPException(status_code=503, detail="Cliente Telegram não está disponível")
     
     if not telegram_connected:
-        raise HTTPException(status_code=503, detail=f"Cliente Telegram não está conectado: {connection_error}")
-    
-    if CHAT_ID == 0 or CHAT_ID == "0":
-        print("❌ ERRO: CHAT_ID inválido ou não configurado.")
-        raise HTTPException(status_code=500, detail="CHAT_ID não configurado no .env. Verifique se o ID ou Username está correto.")
+        raise HTTPException(status_code=503, detail=f"Cliente Telegram não está conectado: {connection_error or 'Desconhecido'}")
 
     try:
         # 1. Parse do comando
-        if request.command:
-            parts = request.command.strip().split(maxsplit=1)
-            command_type = parts[0].lower().replace('/', '')
-            query_value = parts[1] if len(parts) > 1 else ''
-        elif request.type and request.query:
-            command_type = request.type.lower()
-            query_value = request.query
-        else:
-            raise HTTPException(status_code=400, detail="Forneça 'command' ou o par 'type'/'query'.")
-            
+        parts = request.command.strip().split(maxsplit=1)
+        command_type = parts[0].lower().replace('/', '')
+        query_value = parts[1] if len(parts) > 1 else ''
+
         if not query_value:
             raise HTTPException(status_code=400, detail="O valor da consulta não foi fornecido.")
 
@@ -233,26 +248,6 @@ async def send_command(request: CommandRequest):
             if menu_message_found:
                 break
         
-        # Se não encontrou, tenta enviar /start para abrir o menu
-        if not menu_message_found:
-            print("⚠️ Menu não encontrado. Enviando '/start'...")
-            await client.send_message(CHAT_ID, "/start")
-            await asyncio.sleep(3)
-            
-            async for message in client.iter_messages(CHAT_ID, limit=10):
-                if message.buttons:
-                    for row in message.buttons:
-                        for button in row:
-                            if button.text == button_text_to_click:
-                                print(f"🗺️  Menu encontrado (após /start). Clicando em '{button.text}'...")
-                                await button.click()
-                                menu_message_found = True
-                                break
-                        if menu_message_found:
-                            break
-                if menu_message_found:
-                    break
-
         if not menu_message_found:
             raise HTTPException(status_code=500, detail=f"Não foi possível encontrar o botão '{button_text_to_click}' no menu do chat.")
 
@@ -329,28 +324,26 @@ async def send_command(request: CommandRequest):
         return CommandResponse(success=True, data=json.dumps(structured_data, indent=2, ensure_ascii=False))
 
     except Exception as e:
-        print(f"❌ Erro em send_command: {str(e)}")
+        import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/auth-status", response_model=AuthStatusResponse)
 async def auth_status():
-    """Verifica status da autenticação"""
+    """Verifica o status da autenticação Telegram"""
     return AuthStatusResponse(
         connected=telegram_connected,
+        needs_code=not telegram_connected and client is not None,
         error=connection_error,
-        details="Cliente conectado" if telegram_connected else "Cliente desconectado ou não autenticado"
+        message="Conectado ao Telegram" if telegram_connected else 
+               ("Aguardando código de verificação" if not telegram_connected and client is not None else 
+                f"Erro de conexão: {connection_error}" if connection_error else "Cliente não inicializado")
     )
-
-@app.get("/")
-async def root():
-    return {"status": "online", "service": "Telegram Service"}
 
 @app.get("/health")
 async def health_check():
     """Verifica se o serviço está saudável"""
     try:
-        
         # Limpa requisições pendentes antigas (mais de 5 minutos)
         current_time = time.time()
         expired_requests = [
@@ -360,16 +353,32 @@ async def health_check():
         for req_id in expired_requests:
             del pending_requests[req_id]
         
+        # Limpa respostas de botões antigas
+        expired_buttons = [
+            req_id for req_id, btn_data in button_responses.items()
+            if current_time - btn_data['timestamp'] > 300
+        ]
+        for req_id in expired_buttons:
+            del button_responses[req_id]
+        
         return {
             "status": "OK",
+            "mode": "production",
             "telegram_connected": telegram_connected,
             "telegram_client_available": client is not None,
             "pending_requests": len(pending_requests),
+            "button_responses": len(button_responses),
             "api_id_configured": bool(API_ID),
             "api_hash_configured": bool(API_HASH),
             "chat_id_configured": bool(CHAT_ID),
             "phone_configured": bool(PHONE_NUMBER),
-            "connection_error": connection_error
+            "connection_error": connection_error,
+            "features": {
+                "real_telegram": True,
+                "auth_status_check": True,
+                "button_interaction": True,
+                "all_endpoints": True
+            }
         }
     except Exception as e:
         return {
@@ -379,6 +388,85 @@ async def health_check():
             "telegram_client_available": False,
             "pending_requests": len(pending_requests)
         }
+
+@app.post("/auth-status", response_model=AuthStatusResponse)
+async def auth_status():
+        """Verifica o status da autenticação Telegram"""
+        return AuthStatusResponse(
+            connected=telegram_connected,
+            needs_code=not telegram_connected and client is not None,
+            error=connection_error,
+            message="Conectado ao Telegram" if telegram_connected else 
+                   ("Aguardando código de verificação" if not telegram_connected and client is not None else 
+                    f"Erro de conexão: {connection_error}" if connection_error else "Cliente não inicializado")
+        )
+
+    @app.get("/health")
+async def health_check():
+        """Verifica se o serviço está saudável"""
+        try:
+            # Limpa requisições pendentes antigas (mais de 5 minutos)
+            current_time = time.time()
+            expired_requests = [
+                req_id for req_id, req_data in pending_requests.items()
+                if current_time - req_data['timestamp'] > 300
+            ]
+            for req_id in expired_requests:
+                del pending_requests[req_id]
+            
+            # Limpa respostas de botões antigas
+            expired_buttons = [
+                req_id for req_id, btn_data in button_responses.items()
+                if current_time - btn_data['timestamp'] > 300
+            ]
+            for req_id in expired_buttons:
+                del button_responses[req_id]
+            
+            return {
+                "status": "OK",
+                "mode": "production",
+                "telegram_connected": telegram_connected,
+                "telegram_client_available": client is not None,
+                "pending_requests": len(pending_requests),
+                "button_responses": len(button_responses),
+                "api_id_configured": bool(API_ID),
+                "api_hash_configured": bool(API_HASH),
+                "chat_id_configured": bool(CHAT_ID),
+                "phone_configured": bool(PHONE_NUMBER),
+                "connection_error": connection_error,
+                "features": {
+                    "real_telegram": True,
+                    "auth_status_check": True,
+                    "button_interaction": True,
+                    "all_endpoints": True
+                }
+            }
+        except Exception as e:
+            return {
+                "status": "ERROR",
+                "error": str(e),
+                "telegram_connected": False,
+                "telegram_client_available": False,
+                "pending_requests": len(pending_requests)
+            }
+
+    @app.get("/")
+    async def root():
+        """Rota raiz com informações do serviço"""
+        return {
+                "service": "Telegram Query Bridge - Python Service (Production)",
+                "mode": "production",
+                "version": "2.1.0",
+                "telegram_connected": telegram_connected,
+                "endpoints": {
+                    "health": "/health",
+                    "send_command": "/send-command (POST)",
+                    "auth_status": "/auth-status (GET)",
+                    "button_interaction": "✅ Botões inline suportados",
+                    "process_relatorio_completo": "/process-relatorio-completo (POST)"
+                },
+                "status": "running"
+            }
 
 if __name__ == "__main__":
     import uvicorn

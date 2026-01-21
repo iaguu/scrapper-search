@@ -198,7 +198,7 @@ scrapper-search/
 ├── 🔐 .env.template             # Template configuração
 ├── 📖 QUICK_START.md            # Guia rápido
 ├── 📖 CONFIGURACAO.md           # Configuração detalhada
-└── 🚀 start-all.bat             # Inicialização
+└── 🚀 start-complete.bat        # Inicialização
 ```
 
 ---

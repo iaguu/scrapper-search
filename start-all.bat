@@ -3,7 +3,7 @@ echo Iniciando Telegram Query Bridge - Sistema Completo...
 
 echo 1. Iniciando Python Service (Telegram)...
 cd telegram_service
-start "Python Service" cmd /k "python -m uvicorn demo:app --host 127.0.0.1 --port 8000"
+start "Python Service" cmd /k "python -m uvicorn main:app --host 127.0.0.1 --port 8000"
 
 echo 2. Aguardando 3 segundos...
 timeout /t 3 /nobreak > nul
@@ -17,6 +17,12 @@ timeout /t 3 /nobreak > nul
 
 echo 5. Iniciando Web Manager GUI...
 start "Web Manager" cmd /k "python server.py"
+
+echo 6. Aguardando 5 segundos para serviços iniciarem...
+timeout /t 5 /nobreak > nul
+
+echo 7. Abrindo dashboard no navegador...
+start http://localhost:9000
 
 echo.
 echo ========================================

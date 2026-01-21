@@ -1,0 +1,67 @@
+{
+  "service_tests": {
+    "timestamp": 1768949164.9629953,
+    "services": {
+      "python": {
+        "service": "python",
+        "url": "http://localhost:8000",
+        "port": 8000,
+        "timestamp": 1768949164.9635406,
+        "tests": {
+          "port_open": false,
+          "health_check": {
+            "success": false,
+            "error": "Connection refused"
+          },
+          "api_endpoint": {
+            "success": false,
+            "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /send-command (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=8000): Failed to establish a new connection: [WinError 10061] Nenhuma conex\u00e3o p\u00f4de ser feita porque a m\u00e1quina de destino as recusou ativamente\"))"
+          }
+        }
+      },
+      "node": {
+        "service": "node",
+        "url": "http://localhost:3000",
+        "port": 3000,
+        "timestamp": 1768949175.1996949,
+        "tests": {
+          "port_open": false,
+          "health_check": {
+            "success": false,
+            "error": "Connection refused"
+          },
+          "api_endpoint": {
+            "success": false,
+            "error": "HTTPConnectionPool(host='localhost', port=3000): Max retries exceeded with url: /query (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=3000): Failed to establish a new connection: [WinError 10061] Nenhuma conex\u00e3o p\u00f4de ser feita porque a m\u00e1quina de destino as recusou ativamente\"))"
+          }
+        }
+      },
+      "manager": {
+        "service": "manager",
+        "url": "http://localhost:9000",
+        "port": 9000,
+        "timestamp": 1768949185.393042,
+        "tests": {
+          "port_open": false,
+          "health_check": {
+            "success": false,
+            "error": "Connection refused"
+          }
+        }
+      }
+    }
+  },
+  "integration_tests": {
+    "timestamp": 1768949191.5300486,
+    "tests": {
+      "python_online": false,
+      "node_online": false,
+      "manager_online": false,
+      "all_services_online": false,
+      "complete_flow": {
+        "success": false,
+        "error": "Servi\u00e7os n\u00e3o est\u00e3o todos online"
+      }
+    }
+  }
+}
