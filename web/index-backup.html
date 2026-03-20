@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Query Bridge - Dashboard Moderna</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, #1a1a2e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--text-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            font-size: 14px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
+            transition: all 0.5s ease;
+        }
+        
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            min-height: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .status-online {
+            background: var(--success);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+        
+        .status-offline {
+            background: var(--danger);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+        }
+        
+        .badge-offline {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .badge-online {
+            background: var(--success);
+            color: white;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .log-container {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <!-- Navigation -->
+    <nav class="glass-card border border-gray-700 mb-6 px-6 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <!-- Logo -->
+                    <div class="flex items-center">
+                        <i class="fas fa-telegram text-3xl text-blue-400 mr-3"></i>
+                        <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                            Telegram Bridge
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Status Indicators -->
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center">
+                        <div id="manager-status" class="status-offline w-3 h-3 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-400">Manager</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div id="node-status" class="status-offline w-3 h-3 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-400">API Node</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div id="python-status" class="status-offline w-3 h-3 rounded-full"></div>
+                        <span class="text-sm text-gray-400">Python</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Services Control Panel -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Python Service Card -->
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <i class="fab fa-python text-yellow-400 mr-3"></i>
+                            Python Service
+                            <span id="python-badge" class="ml-3 px-3 py-1 badge-offline text-xs font-semibold rounded-full">
+                                Offline
+                            </span>
+                        </h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <div class="text-sm text-gray-400 mb-3">Porta: 8001 | Latência: <span id="python-latency" class="text-green-400">--</span>ms</div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button id="python-start-btn" onclick="controlService('python', 'start')" class="btn-primary w-full">
+                                    <i class="fas fa-play mr-1"></i> Iniciar
+                                </button>
+                                <button id="python-restart-btn" onclick="controlService('python', 'restart')" class="btn-secondary w-full">
+                                    <i class="fas fa-sync mr-1"></i> Reiniciar
+                                </button>
+                                <button id="python-stop-btn" onclick="controlService('python', 'stop')" class="btn-secondary w-full">
+                                    <i class="fas fa-stop mr-1"></i> Parar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Authentication Section -->
+                        <div class="mt-6 pt-6 border-t border-gray-700">
+                            <h4 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-key text-blue-400 mr-3"></i>
+                                Autenticação Telegram
+                                <span id="auth-badge" class="ml-3 px-3 py-1 bg-blue-400 text-gray-900 text-xs font-semibold rounded-full">
+                                    Não Verificado
+                                </span>
+                            </h4>
+                            <div class="space-y-4">
+                                <button id="request-auth-btn" onclick="requestTelegramAuth()" class="btn-primary w-full">
+                                    <i class="fas fa-paper-plane mr-2"></i>
+                                    Solicitar Autenticação
+                                </button>
+                                <div id="auth-code-section" class="hidden space-y-4">
+                                    <div class="relative">
+                                        <input type="text" id="auth-code" placeholder="Digite o código de verificação..." 
+                                               class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <button id="verify-auth-btn" onclick="verifyAuthCode()" class="btn-primary absolute right-2 top-2 px-4 py-2">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">Insira o código recebido no Telegram</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Node.js Service Card -->
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fab fa-node-js text-green-400 mr-3"></i>
+                        Node.js API
+                        <span id="node-badge" class="ml-3 px-3 py-1 badge-offline text-xs font-semibold rounded-full">
+                            Offline
+                        </span>
+                    </h3>
+                </div>
+                
+                <div class="text-sm text-gray-400 mb-3">Porta: 3000 | Latência: <span id="node-latency" class="text-green-400">--</span>ms</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="node-start-btn" onclick="controlService('node', 'start')" class="btn-primary w-full">
+                        <i class="fas fa-play mr-1"></i> Iniciar
+                    </button>
+                    <button id="node-restart-btn" onclick="controlService('node', 'restart')" class="btn-secondary w-full">
+                        <i class="fas fa-sync mr-1"></i> Reiniciar
+                    </button>
+                    <button id="node-stop-btn" onclick="controlService('node', 'stop')" class="btn-secondary w-full">
+                        <i class="fas fa-stop mr-1"></i> Parar
+                    </button>
+                </div>
+            </div>
+
+            <!-- API Test Card -->
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fas fa-vial text-purple-400 mr-3"></i>
+                        Testar Consulta
+                    </h3>
+                </div>
+                
+                <form id="test-form" onsubmit="testApi(event)" class="space-y-4">
+                    <div>
+                        <select id="query-type" class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                            <option value="cpf">🆔 CPF</option>
+                            <option value="telefone">📞 Telefone</option>
+                            <option value="placa">🚗 Placa</option>
+                            <option value="nome">👤 Nome</option>
+                            <option value="email">📧 Email</option>
+                            <option value="cep">📍 CEP</option>
+                            <option value="cnpj">🏢 CNPJ</option>
+                            <option value="mae">👩 Mãe</option>
+                        </select>
+                    </div>
+                    <div>
+                        <input type="text" id="query-value" placeholder="Digite o valor para consulta..." 
+                               class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-primary w-full">
+                            <i class="fas fa-paper-plane mr-2"></i> Enviar Consulta
+                        </button>
+                    </div>
+                    <div class="mt-4">
+                        <div class="log-container p-4 max-h-64 overflow-y-auto">
+                            <pre id="api-response" class="text-green-400">// Aguardando requisição...</pre>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- System Metrics -->
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fas fa-chart-line text-orange-400 mr-3"></i>
+                        Métricas do Sistema
+                    </h3>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="metric-card p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-2">Uptime dos Serviços</h4>
+                        <div class="space-y-2 text-sm">
+                            <div>Python: <span id="python-uptime" class="text-green-400">--</span></div>
+                            <div>Node.js: <span id="node-uptime" class="text-green-400">--</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-2">Performance</h4>
+                        <div class="space-y-2 text-sm">
+                            <div>Cache Hit Rate: <span id="cache-hit-rate" class="text-green-400">--</span></div>
+                            <div>Response Time: <span id="response-time" class="text-green-400">--</span>ms</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Logs -->
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold flex items-center">
+                        <i class="fas fa-bug text-red-400 mr-3"></i>
+                        Debug e Logs
+                    </h3>
+                </div>
+                
+                <!-- Configuração de API Key -->
+                <div class="mb-4 p-4 bg-gray-800 rounded-lg">
+                    <h4 class="text-sm font-semibold mb-2 text-gray-300">Configuração da API</h4>
+                    <div class="flex space-x-2">
+                        <input type="text" id="api-key-input" placeholder="Digite a API Key..." 
+                               class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm placeholder-gray-400">
+                        <button onclick="setApiKey()" class="btn-secondary px-4 py-2">
+                            <i class="fas fa-key mr-2"></i> Definir
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <button onclick="clearLogs()" class="btn-secondary">
+                        <i class="fas fa-trash mr-2"></i> Limpar Logs
+                    </button>
+                    <button onclick="performHealthCheck()" class="btn-secondary">
+                        <i class="fas fa-heartbeat mr-2"></i> Health Check
+                    </button>
+                    <button onclick="restartAllServices()" class="btn-secondary">
+                        <i class="fas fa-redo mr-2"></i> Reiniciar Tudo
+                    </button>
+                    <button onclick="generateReport()" class="btn-primary">
+                        <i class="fas fa-file-download mr-2"></i> Gerar Relatório
+                    </button>
+                </div>
+                
+                <div id="health-results" class="mt-4 space-y-2"></div>
+                
+                <div class="log-container p-4 max-h-64 overflow-y-auto" id="debug-log">
+                    <div class="log-entry text-green-400">
+                        <span class="text-xs">[2026-01-20 23:51:00]</span>
+                        <span class="text-xs">[INFO]</span>
+                        Sistema de debug inicializado
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-card border border-gray-700 mt-8 px-6 py-4">
+        <div class="max-w-7xl mx-auto text-center text-sm text-gray-400">
+            <p>© 2026 Telegram Query Bridge - Dashboard Moderna</p>
+            <p class="mt-2">Desenvolvido com <i class="fas fa-heart text-red-400"></i> usando Tailwind CSS</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuração
+        const MANAGER_URL = 'http://localhost:9000';
+        const NODE_API_URL = 'http://localhost:3000';
+        const PYTHON_API_URL = 'http://localhost:8001';
+        let currentApiKey = '';
+        let useProxy = false;
+        
+        // Sistema de métricas avançado
+        let metricsData = {};
+        
+        // Animações e transições suaves
+        function addTransition(element) {
+            element.classList.add('transition-all', 'duration-300', 'ease-in-out');
+        }
+        
+        function removeTransition(element) {
+            setTimeout(() => {
+                element.classList.remove('transition-all', 'duration-300', 'ease-in-out');
+            }, 300);
+        }
+        
+        // Atualizar status dos serviços com animações
+        function updateServiceStatus(service, status, pid = null) {
+            const badge = document.getElementById(`${service}-badge`);
+            const statusIndicator = document.getElementById(`${service}-status`);
+            
+            if (!badge || !statusIndicator) {
+                logToConsole(`⚠️ Elementos de status para ${service} não encontrados`, 'warn');
+                return;
+            }
+            
+            // Remover classes antigas
+            badge.className = badge.className.replace(/bg-\w+/g, '');
+            statusIndicator.className = statusIndicator.className.replace(/status-\w+/g, '');
+            
+            // Adicionar novas classes com animação
+            setTimeout(() => {
+                if (status === 'running') {
+                    badge.classList.add('badge-online', 'animate-pulse');
+                    statusIndicator.classList.add('status-online', 'animate-pulse');
+                } else {
+                    badge.classList.add('badge-offline');
+                    statusIndicator.classList.add('status-offline');
+                }
+                
+                if (pid) {
+                    badge.textContent = `Online (${pid})`;
+                } else {
+                    badge.textContent = status === 'running' ? 'Online' : 'Offline';
+                }
+            }, 100);
+        }
+        
+        // Solicitar Autenticação Telegram
+        async function requestTelegramAuth() {
+            const btn = document.getElementById('request-auth-btn');
+            const codeSection = document.getElementById('auth-code-section');
+            const badge = document.getElementById('auth-badge');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> Enviando código...';
+            
+            try {
+                const response = await fetch(`${MANAGER_URL}/telegram/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    codeSection.classList.remove('hidden');
+                    badge.textContent = 'Código Enviado';
+                    badge.classList.remove('bg-blue-400');
+                    badge.classList.add('bg-yellow-400');
+                    logToConsole('📱 Código de verificação enviado para o Telegram', 'success');
+                } else {
+                    logToConsole(`❌ Erro: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                logToConsole(`❌ Erro ao solicitar autenticação: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Solicitar Autenticação';
+            }
+        }
+        
+        // Verificar Código de Autenticação
+        async function verifyAuthCode() {
+            const authCode = document.getElementById('auth-code').value.trim();
+            const btn = document.getElementById('verify-auth-btn');
+            const badge = document.getElementById('auth-badge');
+            
+            if (!authCode) {
+                logToConsole('⚠️ Digite o código de verificação', 'warning');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner animate-spin"></i>';
+            
+            try {
+                const response = await fetch(`http://localhost:8001/auth/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone_code: authCode })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    badge.textContent = 'Autenticado';
+                    badge.classList.remove('bg-yellow-400', 'bg-blue-400');
+                    badge.classList.add('badge-online');
+                    logToConsole('✅ Telegram autenticado com sucesso!', 'success');
+                    
+                    // Limpar campo
+                    document.getElementById('auth-code').value = '';
+                    document.getElementById('auth-code-section').classList.add('hidden');
+                } else {
+                    logToConsole(`❌ Falha na autenticação: ${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                logToConsole(`❌ Erro ao verificar código: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+            }
+        }
+        
+        // Verificar status da autenticação
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch(`${MANAGER_URL}/telegram/status`);
+                const result = await response.json();
+                const badge = document.getElementById('auth-badge');
+                
+                if (result.authenticated) {
+                    badge.textContent = 'Autenticado';
+                    badge.classList.remove('bg-blue-400', 'bg-yellow-400');
+                    badge.classList.add('badge-online');
+                } else {
+                    badge.textContent = 'Não Verificado';
+                    badge.classList.remove('badge-online', 'bg-yellow-400');
+                    badge.classList.add('bg-blue-400');
+                }
+            } catch (error) {
+                // Silently fail - serviço pode estar offline
+            }
+        }
+        
+        // Controle de Serviços com animações e feedback melhorado
+        async function controlService(service, action) {
+            const buttons = document.querySelectorAll(`[onclick*="${service}"]`);
+            const originalContents = {};
+            
+            buttons.forEach(btn => {
+                originalContents[btn.id] = btn.innerHTML;
+                // Loading state
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Processando...';
+                addTransition(btn);
+            });
+            
+            try {
+                const response = await fetch(`${MANAGER_URL}/services/control`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service, action })
+                });
+                
+                const result = await response.json();
+                
+                // Aguardar um pouco para o status atualizar
+                setTimeout(() => {
+                    updateStatus();
+                    if (result.success) {
+                        logToConsole(`✅ Serviço ${service} ${action} com sucesso!`, 'success');
+                    } else {
+                        logToConsole(`❌ Falha ao ${action} serviço ${service}: ${result.message}`, 'error');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                logToConsole(`❌ Erro ao controlar serviço: ${error.message}`, 'error');
+            } finally {
+                // Restaurar botões com animação
+                setTimeout(() => {
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalContents[btn.id];
+                        removeTransition(btn);
+                    });
+                }, 300);
+            }
+        }
+        
+        // Testar API com feedback visual aprimorado
+        async function testApi(e) {
+            e.preventDefault();
+            const type = document.getElementById('query-type').value;
+            const query = document.getElementById('query-value').value;
+            const output = document.getElementById('api-response');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            // Loading state
+            output.innerHTML = '<div class="text-blue-400"><i class="fas fa-spinner animate-spin mr-2"></i> Processando requisição...</div>';
+            submitBtn.disabled = true;
+            addTransition(output);
+            
+            try {
+                // Tentar conexão direta primeiro
+                let response = await fetch(`${NODE_API_URL}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': currentApiKey
+                    },
+                    body: JSON.stringify({ type, query })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Sucesso com animação
+                output.innerHTML = `<div class="text-green-400"><i class="fas fa-check-circle mr-2"></i> Sucesso!</div>`;
+                output.classList.add('animate-pulse');
+                
+                setTimeout(() => {
+                    output.classList.remove('animate-pulse');
+                    output.innerHTML = `<pre class="text-green-400">${JSON.stringify(data, null, 2)}</pre>`;
+                }, 500);
+                
+            } catch (directError) {
+                // Erro com animação
+                output.innerHTML = `<div class="text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> Erro na conexão direta</div>`;
+                logToConsole(`⚠️ Falha na conexão direta: ${directError.message}`, 'warn');
+                
+                // Tentar via proxy se a conexão direta falhar
+                try {
+                    logToConsole('🔄 Tentando conexão via proxy...', 'info');
+                    
+                    let response = await fetch(`${MANAGER_URL}/proxy/node/query`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': currentApiKey
+                        },
+                        body: JSON.stringify({ type, query })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Proxy HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    output.innerHTML = `<div class="text-blue-400"><i class="fas fa-check-circle mr-2"></i> Sucesso via proxy!</div>`;
+                    logToConsole('✅ Conexão via proxy bem-sucedida!', 'success');
+                    
+                } catch (proxyError) {
+                    output.innerHTML = `<div class="text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> Erro no proxy</div>`;
+                    logToConsole(`❌ Falha no proxy: ${proxyError.message}`, 'error');
+                }
+                
+            } finally {
+                // Restaurar botão
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    removeTransition(output);
+                }, 1000);
+            }
+        }
+        
+        // Health Check com animações
+        async function performHealthCheck() {
+            const results = {};
+            
+            // Check Manager
+            try {
+                const response = await fetch(`${MANAGER_URL}/health`);
+                results.manager = await response.json();
+            } catch (error) {
+                results.manager = { error: error.message };
+            }
+            
+            // Check Node.js
+            try {
+                const response = await fetch(`${NODE_API_URL}/health`);
+                results.node = await response.json();
+            } catch (error) {
+                results.node = { error: error.message };
+            }
+            
+            // Check Python
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/health`);
+                results.python = await response.json();
+            } catch (error) {
+                results.python = { error: error.message };
+            }
+            
+            displayHealthResults(results);
+        }
+        
+        function displayHealthResults(results) {
+            const container = document.getElementById('health-results');
+            if (!container) return;
+            
+            const html = Object.keys(results).map(service => {
+                const result = results[service];
+                const status = result.error ? 'error' : 'success';
+                const icon = result.error ? '❌' : '✅';
+                
+                return `
+                    <div class="p-4 rounded-lg border ${status === 'error' ? 'border-red-500' : 'border-green-500'}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="text-lg font-semibold">${icon}</span>
+                                <span class="ml-2 font-bold">${service.toUpperCase()}</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                Status: ${status === 'error' ? 'Error' : 'OK'}
+                            </div>
+                        </div>
+                        <pre class="mt-2 text-xs bg-gray-800 p-2 rounded overflow-x-auto">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        // Sistema de logs aprimorado
+        function logToConsole(message, level = 'info') {
+            const logContainer = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleString('pt-BR');
+            const logEntry = document.createElement('div');
+            
+            logEntry.className = 'log-entry fade-in';
+            
+            const levelColors = {
+                'info': 'text-green-400',
+                'warn': 'text-yellow-400',
+                'error': 'text-red-400',
+                'debug': 'text-blue-400',
+                'success': 'text-green-400'
+            };
+            
+            const levelIcons = {
+                'info': 'fa-info-circle',
+                'warn': 'fa-exclamation-triangle',
+                'error': 'fa-times-circle',
+                'debug': 'fa-bug',
+                'success': 'fa-check-circle'
+            };
+            
+            logEntry.innerHTML = `
+                <div class="flex items-start space-x-3 pb-2 border-b border-gray-700">
+                    <span class="text-xs text-gray-500">${timestamp}</span>
+                    <i class="fas ${levelIcons[level] || 'fa-info-circle'} ${levelColors[level] || 'text-green-400'} mt-1"></i>
+                    <span class="${levelColors[level] || 'text-green-400'} text-sm">[${level.toUpperCase()}]</span>
+                    <span class="text-gray-300 flex-1">${message}</span>
+                </div>
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Limitar logs a 50 entradas
+            const entries = logContainer.querySelectorAll('.log-entry');
+            if (entries.length > 50) {
+                entries[0].remove();
+            }
+        }
+        
+        // Limpar Logs com animação
+        function clearLogs() {
+            const logContainer = document.getElementById('debug-log');
+            
+            logContainer.innerHTML = `
+                <div class="log-entry text-green-400 fade-in">
+                    <span class="text-xs text-gray-500">[${new Date().toLocaleString('pt-BR')}]</span>
+                    <i class="fas fa-broom text-green-400 mr-2"></i>
+                    <span class="text-green-400 text-sm">[INFO]</span>
+                    <span class="text-gray-300 flex-1">Logs limpos pelo usuário</span>
+                </div>
+            `;
+        }
+        
+        // Reiniciar Todos os Serviços com feedback melhorado
+        async function restartAllServices() {
+            logToConsole('🔄 Iniciando reinicialização completa do sistema...', 'info');
+            
+            try {
+                // Parar todos os serviços
+                await Promise.all([
+                    fetch(`${MANAGER_URL}/services/control`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ service: 'python', action: 'stop' })
+                    }),
+                    fetch(`${MANAGER_URL}/services/control`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ service: 'node', action: 'stop' })
+                    })
+                ]);
+                
+                logToConsole('⏹️ Serviços parados com sucesso', 'success');
+                
+                // Aguardar 3 segundos
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Iniciar todos os serviços
+                const response = await fetch(`${MANAGER_URL}/services/start-all`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logToConsole('🎉 Todos os serviços reiniciados com sucesso!', 'success');
+                } else {
+                    logToConsole('❌ Falha ao reiniciar alguns serviços', 'error');
+                }
+                
+                // Atualizar status após 5 segundos
+                setTimeout(updateStatus, 5000);
+                
+            } catch (error) {
+                logToConsole('❌ Erro ao reiniciar serviços: ' + error.message, 'error');
+            }
+        }
+        
+        // Carregar Configurações
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${MANAGER_URL}/config/load`);
+                if (!response.ok) {
+                    logToConsole('⚠️ Falha ao carregar configurações', 'warn');
+                    return;
+                }
+                const config = await response.json();
+                if (config.api_key) {
+                    currentApiKey = config.api_key;
+                    logToConsole('✅ Configurações carregadas com sucesso', 'success');
+                }
+            } catch (error) {
+                logToConsole(`❌ Erro ao carregar configurações: ${error.message}`, 'error');
+            }
+        }
+        
+        // Polling de Status
+        function startPolling() {
+            updateStatus();
+            checkAuthStatus();
+            setInterval(() => {
+                updateStatus();
+                checkAuthStatus();
+            }, 3000);
+        }
+        
+        async function updateStatus() {
+            // Status do Manager (se este script roda, o manager está on)
+            updateIndicator('manager-status', true);
+            
+            try {
+                // Buscar status detalhado do manager
+                const managerResponse = await fetch(`${MANAGER_URL}/services/status`);
+                if (managerResponse.ok) {
+                    const servicesData = await managerResponse.json();
+                    updateServicesFromManager(servicesData.services || []);
+                }
+                
+                // Status do Node.js
+                try {
+                    const nodeResponse = await fetch(`${NODE_API_URL}/health`, { 
+                        signal: AbortSignal.timeout(5000) 
+                    });
+                    updateIndicator('node-status', nodeResponse.ok);
+                    updateServiceStatus('node', nodeResponse.ok ? 'running' : 'stopped');
+                } catch (nodeError) {
+                    logToConsole(`⚠️ Node.js não responde: ${nodeError.message}`, 'warn');
+                    updateIndicator('node-status', false);
+                    updateServiceStatus('node', 'stopped');
+                }
+                
+                // Status do Python
+                try {
+                    const pythonResponse = await fetch(`${PYTHON_API_URL}/health`, { 
+                        signal: AbortSignal.timeout(5000) 
+                    });
+                    updateIndicator('python-status', pythonResponse.ok);
+                    updateServiceStatus('python', pythonResponse.ok ? 'running' : 'stopped');
+                } catch (pythonError) {
+                    logToConsole(`⚠️ Python não responde: ${pythonError.message}`, 'warn');
+                    updateIndicator('python-status', false);
+                    updateServiceStatus('python', 'stopped');
+                }
+                
+            } catch (error) {
+                logToConsole(`⚠️ Erro geral ao verificar status: ${error.message}`, 'warn');
+            }
+        }
+        
+        function updateServicesFromManager(services) {
+            services.forEach(service => {
+                if (service.service === 'python') {
+                    updateServiceStatus('python', service.status, service.pid);
+                    if (service.pid) {
+                        document.getElementById('python-latency').textContent = '--';
+                    }
+                } else if (service.service === 'node') {
+                    updateServiceStatus('node', service.status, service.pid);
+                    if (service.pid) {
+                        document.getElementById('node-latency').textContent = '--';
+                    }
+                }
+            });
+        }
+        
+        function updateIndicator(elementId, isOnline) {
+            const indicator = document.getElementById(elementId);
+            if (indicator && indicator.className) {
+                indicator.className = isOnline ? 'status-online w-3 h-3 rounded-full' : 'status-offline w-3 h-3 rounded-full';
+            }
+        }
+        
+        // Salvar Configurações
+        async function saveConfig() {
+            try {
+                const formData = new FormData(document.getElementById('config-form'));
+                const config = Object.fromEntries(formData);
+                
+                const response = await fetch(`${MANAGER_URL}/config/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    logToConsole('✅ Configurações salvas com sucesso', 'success');
+                    loadConfig(); // Recarregar configurações
+                } else {
+                    logToConsole('❌ Falha ao salvar configurações', 'error');
+                }
+            } catch (error) {
+                logToConsole(`❌ Erro ao salvar configurações: ${error.message}`, 'error');
+            }
+        }
+        
+        // Definir API Key
+        function setApiKey() {
+            const apiKeyInput = document.getElementById('api-key-input');
+            const apiKey = apiKeyInput.value.trim();
+            
+            if (!apiKey) {
+                logToConsole('⚠️ API Key não pode ser vazia', 'warn');
+                return;
+            }
+            
+            currentApiKey = apiKey;
+            localStorage.setItem('telegram_bridge_api_key', apiKey);
+            logToConsole('✅ API Key configurada com sucesso!', 'success');
+            
+            // Limpar campo
+            apiKeyInput.value = '';
+            
+            // Testar conexão
+            testApiConnection();
+        }
+        
+        async function testApiConnection() {
+            try {
+                const response = await fetch(`${NODE_API_URL}/health`, {
+                    headers: {
+                        'X-API-Key': currentApiKey
+                    }
+                });
+                
+                if (response.ok) {
+                    logToConsole('✅ Conexão com API Node.js estabelecida!', 'success');
+                } else {
+                    logToConsole(`⚠️ API Key rejeitada: HTTP ${response.status}`, 'warn');
+                }
+            } catch (error) {
+                logToConsole(`❌ Erro ao testar conexão: ${error.message}`, 'error');
+            }
+        }
+        
+        // Carregar API Key do localStorage
+        function loadApiKeyFromStorage() {
+            const storedKey = localStorage.getItem('telegram_bridge_api_key');
+            if (storedKey) {
+                currentApiKey = storedKey;
+                logToConsole('✅ API Key carregada do armazenamento local', 'info');
+            }
+        }
+        
+        // Gerar Relatório Markdown
+        async function generateReport() {
+            try {
+                logToConsole('📊 Gerando relatório do sistema...', 'info');
+                
+                // Coletar dados dos serviços
+                const managerResponse = await fetch(`${MANAGER_URL}/services/status`);
+                const servicesData = managerResponse.ok ? await managerResponse.json() : { services: [] };
+                
+                // Coletar dados de saúde
+                const healthResults = await performHealthCheckForReport();
+                
+                // Gerar relatório
+                const report = generateMarkdownReport(servicesData.services || [], healthResults);
+                
+                // Download do arquivo
+                downloadReport(report);
+                
+                logToConsole('✅ Relatório gerado com sucesso!', 'success');
+            } catch (error) {
+                logToConsole(`❌ Erro ao gerar relatório: ${error.message}`, 'error');
+            }
+        }
+        
+        async function performHealthCheckForReport() {
+            const results = {};
+            
+            try {
+                const managerResponse = await fetch(`${MANAGER_URL}/health`);
+                results.manager = await managerResponse.json();
+            } catch (error) {
+                results.manager = { error: error.message };
+            }
+            
+            try {
+                const nodeResponse = await fetch(`${NODE_API_URL}/health`);
+                results.node = await nodeResponse.json();
+            } catch (error) {
+                results.node = { error: error.message };
+            }
+            
+            try {
+                const pythonResponse = await fetch(`${PYTHON_API_URL}/health`);
+                results.python = await pythonResponse.json();
+            } catch (error) {
+                results.python = { error: error.message };
+            }
+            
+            return results;
+        }
+        
+        function generateMarkdownReport(services, healthResults) {
+            const timestamp = new Date().toLocaleString('pt-BR');
+            
+            let report = `# Relatório do Sistema - Telegram Bridge\n\n`;
+            report += `**Gerado em:** ${timestamp}\n\n`;
+            
+            // Status dos Serviços
+            report += `## 📊 Status dos Serviços\n\n`;
+            services.forEach(service => {
+                const status = service.status === 'running' ? '✅ Online' : '❌ Offline';
+                const pid = service.pid ? ` (PID: ${service.pid})` : '';
+                report += `### ${service.service.toUpperCase()}\n`;
+                report += `- **Status:** ${status}${pid}\n`;
+                report += `- **Porta:** ${service.port}\n`;
+                if (service.details) {
+                    report += `- **Detalhes:** \`${JSON.stringify(service.details, null, 2)}\`\n`;
+                }
+                report += `\n`;
+            });
+            
+            // Health Check
+            report += `## 🔍 Health Check\n\n`;
+            Object.keys(healthResults).forEach(service => {
+                const result = healthResults[service];
+                const status = result.error ? '❌ Erro' : '✅ OK';
+                report += `### ${service.toUpperCase()}\n`;
+                report += `- **Status:** ${status}\n`;
+                if (result.error) {
+                    report += `- **Erro:** ${result.error}\n`;
+                } else {
+                    report += `- **Resposta:** \`${JSON.stringify(result, null, 2)}\`\n`;
+                }
+                report += `\n`;
+            });
+            
+            // Logs Recentes
+            report += `## 📝 Logs Recentes\n\n`;
+            const logEntries = document.querySelectorAll('#debug-log .log-entry');
+            const recentLogs = Array.from(logEntries).slice(-10);
+            recentLogs.forEach(entry => {
+                const text = entry.textContent.trim();
+                report += `- ${text}\n`;
+            });
+            
+            report += `\n---\n*Relatório gerado automaticamente pelo Telegram Bridge Dashboard*`;
+            
+            return report;
+        }
+        
+        function downloadReport(content) {
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `telegram-bridge-report-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            // Adicionar transições suaves aos elementos
+            document.querySelectorAll('.glass-card').forEach(card => {
+                addTransition(card);
+            });
+            
+            // Carregar configurações e iniciar polling
+            loadConfig();
+            loadApiKeyFromStorage();
+            startPolling();
+        });
+    </script>
+</body>
+</html>

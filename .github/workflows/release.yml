@@ -1,0 +1,44 @@
+﻿name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+      - name: Build
+        run: npm run build --if-present
+      - name: Pack release asset
+        shell: bash
+        run: |
+          mkdir -p release
+          if [ -d dist ]; then cp -r dist release/; fi
+          if [ -d build ]; then cp -r build release/; fi
+          if [ -d out ]; then cp -r out release/; fi
+          if [ -d .next ]; then cp -r .next release/; fi
+          if [ -z "$(ls -A release)" ]; then
+            rsync -a --exclude .git --exclude node_modules --exclude coverage --exclude .next ./ release/source/
+          fi
+          zip -r release-${{ github.event.repository.name }}.zip release
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-*.zip

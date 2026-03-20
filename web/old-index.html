@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Query Bridge - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #0088cc; --dark-bg: #000000; --card-bg: #212529; --text-color: #ffffff; }
+        body { background-color: var(--dark-bg); color: var(--text-color); font-family: 'Segoe UI', sans-serif; }
+        .navbar { background-color: var(--card-bg); border-bottom: 1px solid #2c3035; }
+        .card { background-color: var(--card-bg); border: 1px solid #2c3035; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card-header { border-bottom: 1px solid #2c3035; font-weight: 600; }
+        .form-control, .form-select { background-color: #111; border: 1px solid #444; color: #fff; }
+        .form-control::placeholder { color: #aaa; }
+        .form-control:focus, .form-select:focus { background-color: #111; color: #fff; border-color: var(--primary-color); box-shadow: 0 0 0 0.25rem rgba(0, 136, 204, 0.25); }
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-online { background-color: #28a745; box-shadow: 0 0 5px #28a745; }
+        .status-offline { background-color: #dc3545; box-shadow: 0 0 5px #dc3545; }
+        .btn-primary { background-color: var(--primary-color); border: none; }
+        .btn-primary:hover { background-color: #006699; }
+        pre { background: #000; padding: 15px; border-radius: 5px; color: #0f0; font-family: 'Consolas', monospace; max-height: 300px; overflow-y: auto; border: 1px solid #333; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .badge { 
+            font-size: 0.85em; 
+            padding: 0.5em 0.8em; 
+            font-weight: 600;
+            border-radius: 0.375rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .badge.bg-secondary {
+            background-color: #495057 !important;
+            color: #ffffff !important;
+            border: 1px solid #343a40;
+        }
+        .badge.bg-success {
+            background-color: #198754 !important;
+            color: #ffffff !important;
+            border: 1px solid #157347;
+            box-shadow: 0 2px 4px rgba(25, 135, 84, 0.3);
+        }
+        .badge.bg-danger {
+            background-color: #dc3545 !important;
+            color: #ffffff !important;
+            border: 1px solid #bb2d3b;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+        }
+        .text-success {
+            color: #198754 !important;
+            font-weight: 600;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+        .text-warning {
+            color: #ffc107 !important;
+            font-weight: 600;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+        }
+        .text-danger {
+            color: #dc3545 !important;
+            font-weight: 700;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+        }
+        .fw-bold {
+            font-weight: bold;
+        }
+        .btn {
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            border-radius: 0.375rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .btn-success {
+            background-color: #198754 !important;
+            border-color: #157347 !important;
+        }
+        .btn-warning {
+            background-color: #ffc107 !important;
+            border-color: #d39e00 !important;
+            color: #000 !important;
+        }
+        .btn-danger {
+            background-color: #dc3545 !important;
+            border-color: #bb2d3b !important;
+        }
+        .card-header {
+            background-color: #2c3035 !important;
+            border-bottom: 2px solid #495057;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            color: #ffffff !important;
+        }
+        .navbar-dark .navbar-nav .nav-link {
+            color: #ffffff !important;
+        }
+        .navbar-dark .navbar-nav .nav-link:hover {
+            color: #ffffff !important;
+        }
+        .navbar-dark .navbar-brand {
+            color: #ffffff !important;
+        }
+        .navbar-dark .navbar-brand:hover {
+            color: #ffffff !important;
+        }
+        .text-muted {
+            color: #adb5bd !important;
+        }
+        .form-label { color: #ffffff !important; }
+        h5 { color: #ffffff !important; }
+        small { color: #adb5bd !important; }
+        .border-end { border-color: #495057 !important; }
+        /* Animations */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading { animation: pulse 1.5s infinite; }
+        .spinner { animation: spin 1s linear infinite; }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .log-container {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin-bottom: 3px;
+            padding: 2px 0;
+            border-bottom: 1px solid #222;
+        }
+        .log-timestamp { color: #888; }
+        .log-level-info { color: #0f0; }
+        .log-level-warn { color: #ff0; }
+        .log-level-error { color: #f00; }
+        .log-level-debug { color: #0ff; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fab fa-telegram me-2"></i>Telegram Query Bridge</a>
+            <div class="d-flex align-items-center">
+                <span class="me-3"><span id="manager-status" class="status-indicator status-offline"></span>Manager</span>
+                <span class="me-3"><span id="api-status" class="status-indicator status-offline"></span>API Node</span>
+                <span><span id="python-status" class="status-indicator status-offline"></span>Python Service</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <!-- Controle de Serviços -->
+            <div class="col-md-12 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><i class="fas fa-server me-2"></i>Controle de Serviços e Status</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 border-end">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5><i class="fab fa-node-js me-2 text-success"></i>Node.js API</h5>
+                                    <span id="node-badge" class="badge bg-secondary">Verificando...</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted">Porta: 3000 | Latência: <span id="node-latency">--</span>ms</small>
+                                </div>
+                                <div class="btn-group w-100">
+                                    <button onclick="controlService('node', 'start')" class="btn btn-success btn-sm"><i class="fas fa-play"></i> Iniciar</button>
+                                    <button onclick="controlService('node', 'restart')" class="btn btn-warning btn-sm"><i class="fas fa-sync"></i> Reiniciar</button>
+                                    <button onclick="controlService('node', 'stop')" class="btn btn-danger btn-sm"><i class="fas fa-stop"></i> Parar</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5><i class="fab fa-python me-2 text-warning"></i>Python Service</h5>
+                                    <span id="python-badge" class="badge bg-secondary">Verificando...</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted">Porta: 8001 | Latência: <span id="python-latency">--</span>ms</small>
+                                </div>
+                                <div class="btn-group w-100">
+                                    <button onclick="controlService('python', 'start')" class="btn btn-success btn-sm"><i class="fas fa-play"></i> Iniciar</button>
+                                    <button onclick="controlService('python', 'restart')" class="btn btn-warning btn-sm"><i class="fas fa-sync"></i> Reiniciar</button>
+                                    <button onclick="controlService('python', 'stop')" class="btn btn-danger btn-sm"><i class="fas fa-stop"></i> Parar</button>
+                                </div>
+                                <!-- Autenticação Telegram -->
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6><i class="fas fa-key me-2 text-info"></i>Autenticação Telegram</h6>
+                                        <span id="auth-badge" class="badge bg-secondary">Não verificado</span>
+                                    </div>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="auth-code" placeholder="Código de verificação (opcional)">
+                                        <button class="btn btn-primary" type="button" onclick="forceAuth()">
+                                            <i class="fas fa-sign-in-alt"></i> Forçar Autenticação
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Insira o código recebido no Telegram para forçar autenticação</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teste de API -->
+            <div class="col-md-12">
+                <div class="card h-100">
+                    <div class="card-header"><i class="fas fa-vial me-2"></i>Testar Consulta</div>
+                    <div class="card-body">
+                        <form id="test-form" onsubmit="testApi(event)">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <select class="form-select" id="query-type">
+                                        <option value="cpf">CPF</option>
+                                        <option value="telefone">Telefone</option>
+                                        <option value="placa">Placa</option>
+                                        <option value="nome">Nome</option>
+                                        <option value="email">Email</option>
+                                        <option value="cep">CEP</option>
+                                        <option value="cnpj">CNPJ</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="query-value" placeholder="Digite o valor para consulta..." required>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">Enviar</button>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="mt-3">
+                            <label class="form-label text-muted">Resposta da API:</label>
+                            <pre id="api-response">// Aguardando requisição...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sistema de Recursos -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-chart-line me-2"></i>Recursos do Sistema</span>
+                        <button id="auto-refresh-btn" class="btn btn-outline-secondary btn-sm" onclick="toggleAutoRefresh()">
+                            <i class="fas fa-sync-alt"></i> Auto-Refresh OFF
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="system-resources">
+                                    <!-- Barras de progresso serão inseridas aqui -->
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div id="health-results">
+                                    <!-- Resultados do health check -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas Avançadas -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="fas fa-tachometer-alt me-2"></i>Métricas Avançadas</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Uptime dos Serviços</h6>
+                                <div class="metrics-uptime">
+                                    <div>Python: <span id="python-uptime">--</span></div>
+                                    <div>Node.js: <span id="node-uptime">--</span></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Performance</h6>
+                                <div class="metrics-performance">
+                                    <div>Cache Hit Rate: <span id="cache-hit-rate">--</span></div>
+                                    <div>Response Time: <span id="response-time">--</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-bug me-2"></i>Debug e Logs do Sistema</span>
+                        <div>
+                            <button onclick="clearLogs()" class="btn btn-sm btn-outline-light me-2"><i class="fas fa-trash"></i> Limpar Logs</button>
+                            <button onclick="loadLogs()" class="btn btn-sm btn-outline-info me-2"><i class="fas fa-file-alt"></i> Carregar Logs</button>
+                            <button onclick="performHealthCheck()" class="btn btn-sm btn-outline-success me-2"><i class="fas fa-heartbeat"></i> Health Check</button>
+                            <button onclick="restartAllServices()" class="btn btn-sm btn-warning"><i class="fas fa-redo"></i> Reiniciar Tudo</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container" id="debug-log">
+                            <div class="log-entry">
+                                <span class="log-timestamp">[2026-01-20 23:51:00]</span> 
+                                <span class="log-level-info">[INFO]</span> 
+                                Sistema de debug inicializado
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuração -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-cog me-2"></i>Configuração (.env)</span>
+                        <button onclick="loadConfig()" class="btn btn-sm btn-outline-light"><i class="fas fa-sync"></i> Recarregar</button>
+                    </div>
+                    <div class="card-body">
+                        <form id="config-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">API Key (Segurança)</label>
+                                    <input type="text" class="form-control" name="API_KEY">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phone Number (Telegram)</label>
+                                    <input type="text" class="form-control" name="PHONE_NUMBER" placeholder="+55...">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">API ID</label>
+                                    <input type="text" class="form-control" name="API_ID">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">API Hash</label>
+                                    <input type="text" class="form-control" name="API_HASH">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Chat ID (Grupo)</label>
+                                    <input type="text" class="form-control" name="CHAT_ID">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ambiente</label>
+                                    <select class="form-select" name="NODE_ENV">
+                                        <option value="development">Development</option>
+                                        <option value="production">Production</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" onclick="saveConfig()" class="btn btn-primary"><i class="fas fa-save me-2"></i>Salvar Configurações</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Configuração
+        const MANAGER_URL = 'http://localhost:9000';
+        const NODE_API_URL = 'http://localhost:3000';
+        const PYTHON_API_URL = 'http://localhost:8001';
+        let currentApiKey = '';
+        let useProxy = false; // Modo de fallback para quando serviços estão busy
+
+        // Sistema de métricas avançado
+        async function loadMetrics() {
+            try {
+                const response = await fetch(`${MANAGER_URL}/metrics`);
+                const data = await response.json();
+                metricsData = data;
+                updateMetricsDisplay(data);
+            } catch (error) {
+                logToConsole('Erro ao carregar métricas: ' + error.message, 'error');
+            }
+        }
+        
+        function updateMetricsDisplay(data) {
+            // Atualizar recursos do sistema
+            if (data.system_resources) {
+                const cpu = data.system_resources.cpu_percent;
+                const memory = data.system_resources.memory_percent;
+                const disk = data.system_resources.disk_usage;
+                
+                updateResourceBar('cpu', cpu, 'CPU');
+                updateResourceBar('memory', memory, 'Memória');
+                updateResourceBar('disk', disk, 'Disco');
+            }
+            
+            // Atualizar uptime
+            if (data.uptime) {
+                Object.keys(data.uptime).forEach(service => {
+                    const uptime = data.uptime[service];
+                    const element = document.getElementById(`${service}-uptime`);
+                    if (element) {
+                        element.textContent = formatUptime(uptime);
+                    }
+                });
+            }
+        }
+        
+        function updateResourceBar(resource, percent, label) {
+            let element = document.getElementById(`${resource}-usage`);
+            if (!element) {
+                // Criar elemento se não existir
+                const container = document.querySelector('.system-resources');
+                if (container) {
+                    const html = `
+                        <div class="resource-item mb-2">
+                            <small class="text-muted">${label}: <span id="${resource}-usage-text">${percent.toFixed(1)}%</span></small>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" id="${resource}-usage" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                    element = document.getElementById(`${resource}-usage`);
+                }
+            }
+            
+            if (element) {
+                element.style.width = `${percent}%`;
+                element.className = `progress-bar ${getProgressBarClass(percent)}`;
+                const textElement = document.getElementById(`${resource}-usage-text`);
+                if (textElement) {
+                    textElement.textContent = `${percent.toFixed(1)}%`;
+                }
+            }
+        }
+        
+        function getProgressBarClass(percent) {
+            if (percent < 50) return 'bg-success';
+            if (percent < 80) return 'bg-warning';
+            return 'bg-danger';
+        }
+        
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${hours}h ${minutes}m ${secs}s`;
+        }
+        
+        // Auto-refresh
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = document.getElementById('auto-refresh-btn');
+            if (autoRefresh) {
+                startAutoRefresh();
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-success');
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-Refresh ON';
+            } else {
+                stopAutoRefresh();
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-secondary');
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-Refresh OFF';
+            }
+        }
+        
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(() => {
+                updateStatus();
+                loadMetrics();
+            }, refreshInterval);
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+        }
+        
+        // Logs avançados
+        async function loadLogs(service = null, lines = 50) {
+            try {
+                const url = service ? `${MANAGER_URL}/logs?service=${service}&lines=${lines}` : `${MANAGER_URL}/logs?lines=${lines}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                displayLogs(data.logs || []);
+            } catch (error) {
+                logToConsole('Erro ao carregar logs: ' + error.message, 'error');
+            }
+        }
+        
+        function displayLogs(logs) {
+            const logContainer = document.getElementById('debug-log');
+            if (!logContainer) return;
+            
+            logContainer.innerHTML = '';
+            logs.forEach(log => {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry fade-in';
+                logEntry.textContent = log.trim();
+                logContainer.appendChild(logEntry);
+            });
+            
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Health check avançado
+        async function performHealthCheck() {
+            const results = {};
+            
+            // Check Manager
+            try {
+                const response = await fetch(`${MANAGER_URL}/health`);
+                results.manager = await response.json();
+            } catch (error) {
+                results.manager = { error: error.message };
+            }
+            
+            // Check Node.js
+            try {
+                const response = await fetch(`${NODE_API_URL}/health`);
+                results.node = await response.json();
+            } catch (error) {
+                results.node = { error: error.message };
+            }
+            
+            // Check Python
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/health`);
+                results.python = await response.json();
+            } catch (error) {
+                results.python = { error: error.message };
+            }
+            
+            displayHealthResults(results);
+        }
+        
+        function displayHealthResults(results) {
+            const container = document.getElementById('health-results');
+            if (!container) return;
+            
+            const html = Object.keys(results).map(service => {
+                const result = results[service];
+                const status = result.error ? 'error' : 'success';
+                const icon = result.error ? '❌' : '✅';
+                
+                return `
+                    <div class="alert alert-${status === 'error' ? 'danger' : 'success'} alert-sm">
+                        <strong>${icon} ${service.toUpperCase()}</strong>
+                        <pre class="mb-0 mt-1">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        function logToConsole(message, level = 'info') {
+            const logContainer = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleString('pt-BR');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry fade-in';
+            
+            const levelColors = {
+                'info': 'log-level-info',
+                'warn': 'log-level-warn', 
+                'error': 'log-level-error',
+                'debug': 'log-level-debug'
+            };
+            
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="${levelColors[level] || 'log-level-info'}">[${level.toUpperCase()}]</span>
+                ${message}
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Limitar logs a 50 entradas
+            const entries = logContainer.querySelectorAll('.log-entry');
+            if (entries.length > 50) {
+                entries[0].remove();
+            }
+        }
+
+        // Limpar Logs
+        function clearLogs() {
+            const logContainer = document.getElementById('debug-log');
+            logContainer.innerHTML = `
+                <div class="log-entry">
+                    <span class="log-timestamp">[${new Date().toLocaleString('pt-BR')}]</span>
+                    <span class="log-level-info">[INFO]</span>
+                    Logs limpos pelo usuário
+                </div>
+            `;
+        }
+
+        // Reiniciar Todos os Serviços
+        async function restartAllServices() {
+            logToConsole('Iniciando reinicialização completa do sistema...', 'info');
+            
+            try {
+                // Parar todos os serviços
+                await Promise.all([
+                    fetch(`${MANAGER_URL}/services/control`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ service: 'python', action: 'stop' })
+                    }),
+                    fetch(`${MANAGER_URL}/services/control`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ service: 'node', action: 'stop' })
+                    })
+                ]);
+                
+                logToConsole('Serviços parados com sucesso', 'info');
+                
+                // Aguardar 3 segundos
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Iniciar todos os serviços
+                const response = await fetch(`${MANAGER_URL}/services/start-all`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logToConsole('Todos os serviços reiniciados com sucesso!', 'info');
+                } else {
+                    logToConsole('Falha ao reiniciar alguns serviços', 'error');
+                }
+                
+                // Atualizar status após 5 segundos
+                setTimeout(updateStatus, 5000);
+                
+            } catch (error) {
+                logToConsole('Erro ao reiniciar serviços: ' + error.message, 'error');
+            }
+        }
+
+        // Health Check Avançado com Retry
+        async function advancedHealthCheck(service, maxRetries = 3) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(`${service === 'python' ? PYTHON_API_URL : NODE_API_URL}/health`, {
+                        timeout: 5000
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        logToConsole(`${service} service: OK (attempt ${attempt})`, 'info');
+                        return { status: 'online', data, attempt };
+                    }
+                } catch (error) {
+                    logToConsole(`${service} service: Tentativa ${attempt} falhou - ${error.message}`, 'warn');
+                    
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                }
+            }
+            
+            logToConsole(`${service} service: Falha após ${maxRetries} tentativas`, 'error');
+            return { status: 'offline', attempt: maxRetries };
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            startPolling();
+        });
+
+        // Carregar Configurações
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${MANAGER_URL}/config/load`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                if (data.config) {
+                    const form = document.getElementById('config-form');
+                    currentApiKey = data.config.API_KEY || '';
+                    
+                    Object.keys(data.config).forEach(key => {
+                        const input = form.querySelector(`[name="${key}"]`);
+                        if (input) input.value = data.config[key];
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar config:', error);
+                logToConsole('Erro ao carregar configurações: ' + error.message);
+            }
+        }
+
+        // Salvar Configurações
+        async function saveConfig() {
+            const form = document.getElementById('config-form');
+            const formData = new FormData(form);
+            const config = {};
+            
+            formData.forEach((value, key) => {
+                config[key] = value;
+            });
+
+            try {
+                const response = await fetch(`${MANAGER_URL}/config/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Configurações salvas com sucesso!');
+                    currentApiKey = config.API_KEY;
+                } else {
+                    logToConsole('Erro ao salvar configurações: ' + result.error, 'error');
+                }
+            } catch (error) {
+                logToConsole('Erro ao salvar configurações: ' + error.message, 'error');
+            }
+        }
+
+        // Forçar Autenticação Telegram
+        async function forceAuth() {
+            const authCode = document.getElementById('auth-code').value.trim();
+            const authBtn = event.target;
+            const originalHtml = authBtn.innerHTML;
+            
+            // Loading state
+            authBtn.disabled = true;
+            authBtn.innerHTML = '<i class="fas fa-spinner spinner"></i> Autenticando...';
+            
+            try {
+                const response = await fetch(`${PYTHON_API_URL}/force-auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: authCode })
+                });
+                
+                const result = await response.json();
+                
+                if (result.connected) {
+                    document.getElementById('auth-badge').className = 'badge bg-success';
+                    document.getElementById('auth-badge').textContent = 'Autenticado';
+                    logToConsole('✅ Telegram autenticado com sucesso!', 'success');
+                } else {
+                    document.getElementById('auth-badge').className = 'badge bg-danger';
+                    document.getElementById('auth-badge').textContent = 'Falha';
+                    logToConsole(`❌ Falha na autenticação: ${result.details}`, 'error');
+                }
+                
+            } catch (error) {
+                document.getElementById('auth-badge').className = 'badge bg-danger';
+                document.getElementById('auth-badge').textContent = 'Erro';
+                logToConsole(`❌ Erro ao forçar autenticação: ${error.message}`, 'error');
+            } finally {
+                // Restore button
+                authBtn.disabled = false;
+                authBtn.innerHTML = originalHtml;
+            }
+        }
+
+        // Testar API com fallback para proxy
+        async function testApi(e) {
+            e.preventDefault();
+            const type = document.getElementById('query-type').value;
+            const query = document.getElementById('query-value').value;
+            const output = document.getElementById('api-response');
+            
+            output.textContent = 'Enviando requisição...';
+
+            try {
+                // Tentar conexão direta primeiro
+                let response = await fetch(`${NODE_API_URL}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': currentApiKey
+                    },
+                    body: JSON.stringify({ type, query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (directError) {
+                logToConsole(`Falha na conexão direta: ${directError.message}`, 'warn');
+                
+                // Tentar via proxy se a conexão direta falhar
+                try {
+                    logToConsole('Tentando conexão via proxy...', 'info');
+                    
+                    let response = await fetch(`${MANAGER_URL}/proxy/node/query`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': currentApiKey
+                        },
+                        body: JSON.stringify({ type, query })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Proxy HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    output.textContent = JSON.stringify(data, null, 2);
+                    logToConsole('Conexão via proxy bem-sucedida!', 'info');
+                    
+                } catch (proxyError) {
+                    logToConsole(`Falha no proxy: ${proxyError.message}`, 'error');
+                    output.textContent = `Erro na requisição:\nDireta: ${directError.message}\nProxy: ${proxyError.message}\n\nVerifique se os serviços estão rodando e se o CORS está habilitado.`;
+                }
+            }
+        }
+
+        // Polling de Status
+        function startPolling() {
+            updateStatus();
+            setInterval(updateStatus, 3000);
+        }
+
+        async function updateStatus() {
+            // 1. Status do Manager (Se este script roda, o manager está on)
+            updateIndicator('manager-status', true);
+
+            // 2. Status dos Processos via Manager
+            try {
+                const response = await fetch(`${MANAGER_URL}/services/status`);
+                const data = await response.json();
+                
+                data.services.forEach(svc => {
+                    const badge = document.getElementById(`${svc.service}-badge`);
+                    const isRunning = svc.status === 'running';
+                    
+                    if (badge) {
+                        badge.className = isRunning ? 'badge bg-success' : 'badge bg-danger';
+                        badge.textContent = isRunning ? `Online (PID: ${svc.pid})` : 'Offline';
+                    }
+                });
+            } catch (e) {
+                console.error('Erro ao buscar status do manager', e);
+            }
+
+            // 3. Health Check Direto (API Node)
+            checkServiceHealth(NODE_API_URL, 'api-status', 'node-latency');
+            
+            // 4. Health Check Direto (Python)
+            checkServiceHealth(PYTHON_API_URL, 'python-status', 'python-latency');
+        }
+
+        async function checkServiceHealth(url, elementId, latencyId) {
+            const start = performance.now();
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(`${url}/health`, { 
+                    signal: controller.signal,
+                    mode: 'cors' 
+                });
+                clearTimeout(timeoutId);
+
+                const end = performance.now();
+                const latency = Math.round(end - start);
+                
+                if (document.getElementById(latencyId)) {
+                    document.getElementById(latencyId).textContent = latency;
+                    document.getElementById(latencyId).className = latency < 200 ? 'text-success fw-bold' : 'text-warning fw-bold';
+                }
+                
+                if (response.ok) {
+                    updateIndicator(elementId, true);
+                } else {
+                    updateIndicator(elementId, false);
+                }
+            } catch (e) {
+                if (document.getElementById(latencyId)) {
+                    document.getElementById(latencyId).textContent = 'Err';
+                    document.getElementById(latencyId).className = 'text-danger fw-bold';
+                }
+                updateIndicator(elementId, false);
+            }
+        }
+
+        function updateIndicator(id, isOnline) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.className = `status-indicator ${isOnline ? 'status-online' : 'status-offline'}`;
+            }
+        }
+
+        function logToConsole(msg) {
+            const output = document.getElementById('api-response');
+            if (output) {
+                output.textContent += `\n[LOG] ${msg}`;
+            }
+        }
+    </script>
+</body>
+</html>

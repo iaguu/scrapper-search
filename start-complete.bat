@@ -54,7 +54,7 @@ if exist .env (
 
 cd telegram_service
 echo Iniciando Python uvicorn...
-start "Python Service" cmd /k "python -m uvicorn main:app --host 127.0.0.1 --port 8000"
+start "Python Service" cmd /k "python -m uvicorn main:app --host 127.0.0.1 --port 8001"
 
 echo 2. Aguardando 3 segundos...
 timeout /t 3 /nobreak > nul
@@ -84,7 +84,7 @@ echo.
 echo Servicos disponiveis:
 echo  - Dashboard:      http://localhost:9000
 echo  - Node.js API:    http://localhost:3000  
-echo  - Python Service: http://localhost:8000
+echo  - Python Service: http://localhost:8001
 echo.
 echo Comandos uteis:
 echo  - Parar tudo:     npm run stop

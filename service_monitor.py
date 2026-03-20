@@ -29,9 +29,10 @@ class ServiceMonitor:
     def __init__(self):
         self.services = {
             'python': {
-                'url': 'http://localhost:8000/health',
-                'port': 8000,
-                'command': ['python', 'telegram_service/main.py'],
+                'url': 'http://localhost:8001/health',
+                'port': 8001,
+                'command': ['python', '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8001'],
+                'working_dir': os.path.join(os.path.dirname(__file__), 'telegram_service'),
                 'process': None,
                 'restart_delay': 5,
                 'max_restarts': 5,
